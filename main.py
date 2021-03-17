@@ -1,4 +1,4 @@
-import png
+import PIL.Image
 import sys
 from typing import List
 from itertools import zip_longest
@@ -19,24 +19,23 @@ def merge_2bits_lsb_first(bytes):
     return result
 
 
-def input_data_to_byte_list(rows) -> List[int]:
+def input_data_to_byte_list(data) -> List[int]:
     result = []
-    for row in rows:
-        for byte_group in grouper(row, 4, 0):
-            y = merge_2bits_lsb_first(byte_group)
-            result.append(y)
+    for byte_group in grouper(data, 4, 0):
+        y = merge_2bits_lsb_first(byte_group)
+        result.append(y)
     return result
 
-def input_data_to_c_arr(rows) -> str:
-    bytes = input_data_to_byte_list(rows)
+def input_data_to_c_arr(data) -> str:
+    bytes = input_data_to_byte_list(data)
     return ', '.join(hex(x) for x in bytes)
 
 
 def write_to_file(icon_name, input_file):
-    r = png.Reader(input_file)
-    width, height, rows, _ = r.read()
-    rows = list(rows)  # to be able to read multiple times (is a generator by default)
-    arr_data = input_data_to_c_arr(rows)
+    im = PIL.Image.open(input_file)
+    width, height = im.size
+    img_data = im.tobytes()
+    arr_data = input_data_to_c_arr(img_data)
     with open('icon_template.h', 'r') as template:
         t_str = template.read()
         header_text = f"{icon_name.upper()}_H"
@@ -65,3 +64,5 @@ def main(argv):
 
 if __name__ == '__main__':
     main(sys.argv)
+
+
