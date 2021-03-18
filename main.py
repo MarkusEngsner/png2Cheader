@@ -56,11 +56,6 @@ def write_to_file(icon_name, image, mapping) -> None:
         return result
 
 
-def remove_alpha_channel(image: PIL.Image) -> PIL.Image:
-    background = PIL.Image.new('RGBA', image.size, (255, 255, 255))
-    return PIL.Image.alpha_composite(background, image)
-
-
 def convert_svg(file_name: str) -> PIL.Image:
     temp_png_name = f"{file_name}_TEMP.png"
     svg2png(url=f"{file_name}.svg", write_to=temp_png_name, output_width=24, output_height=24)
@@ -87,7 +82,6 @@ def main():
     parser.add_argument("input_file", type=str,
                         help="The name of the image file: svg and png supported"
                              "For svg: It is assumed that the drawn area is black")
-    # TODO: make this argument optional for svg:s
     parser.add_argument("-t ", "--transparent_color", type=str,
                         choices=["black", "white"],
                         help="What color to use as transparency."
