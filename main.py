@@ -88,7 +88,8 @@ def main():
                         help="The name of the image file: svg and png supported"
                              "For svg: It is assumed that the drawn area is black")
     # TODO: make this argument optional for svg:s
-    parser.add_argument("transparent_color", type=str,
+    parser.add_argument("-t ", "--transparent_color", type=str,
+                        choices=["black", "white"],
                         help="What color to use as transparency."
                              "Only used for pngs. Options= black or white")
 
@@ -102,6 +103,11 @@ def main():
         return -1
     else:
         indexed_image = PIL.Image.open(args.input_file)
+        indexed_image = indexed_image.quantize(colors=4)
+        # Redoing the quantization makes sure that the colors are 0, 1, 2, 3
+        if not args.transparent_color:
+            print("Error: Have to specify transparency for PNGs.")
+            return -1
         mapping = mappings["gimp_black_as_transparent"] if args.transparent_color == "black" else mappings[
             "gimp_white_as_transparent"]
     write_to_file(args.output_name, indexed_image, mapping)
