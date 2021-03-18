@@ -2,6 +2,7 @@ import argparse
 import os
 import PIL.Image, PIL.ImageOps
 import numpy as np
+from io import BytesIO
 from cairosvg import svg2png
 from string import Template
 
@@ -65,12 +66,11 @@ def cleanup_input_file(image: PIL.Image) -> PIL.Image:
 
 
 def convert_svg(file_name: str) -> PIL.Image:
-    temp_png_name = f"{file_name}_TEMP.png"
+    temp_png = BytesIO()
     # TODO: add support for choosing size
-    svg2png(url=f"{file_name}.svg", write_to=temp_png_name, output_width=24, output_height=24)
-    im = PIL.Image.open(temp_png_name)
+    svg2png(url=f"{file_name}.svg", write_to=temp_png, output_width=24, output_height=24)
+    im = PIL.Image.open(temp_png)
     iml = cleanup_input_file(im)
-    os.remove(temp_png_name)
     return iml
 
 
