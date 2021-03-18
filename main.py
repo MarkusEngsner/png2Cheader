@@ -11,9 +11,15 @@ from cairosvg import svg2png
 
 def numpy_concat(image):
     arr = np.array(image)
-    trans_arr = np.array([0, 2, 4, 6])
+    trans_arr = np.array([0, 2, 4, 6])  # Defines the bit shifts for the pixel merging.
     rows = arr.size // 4
     arr = arr.reshape(rows, 4)
+    # Note: the input image stores the pixels from right to left,
+    # this flips the pixels within each bytes so that:
+    # 1 2 3 4 5 6 7 8  (with each number being the index)
+    # turns into:
+    # 4 3 2 1 8 7 6 5
+    # which is the way they are stored in the library.
     shifted = (arr << trans_arr)
     return shifted.sum(axis=1)
 
