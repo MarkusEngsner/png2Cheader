@@ -1,7 +1,8 @@
+import argparse
+import itertools
+import functools
 import PIL.Image
-import sys
-from typing import List
-from itertools import zip_longest
+from typing import List, Dict
 from string import Template
 
 
@@ -10,10 +11,10 @@ def grouper(iterable, n, fillvalue=None):
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     # Taken from itertools recipes
     args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
+    return itertools.zip_longest(*args, fillvalue=fillvalue)
 
 
-def merge_2bits_lsb_first(bytes, mapping):
+def merge_2bits_lsb_first(bytes, mapping) -> int:
     result = 0
     # mapping = {0 : 0, 0b01: 0b10, 0b10: 0b01, 0b11: 0b11}
     for bit_group in reversed(bytes):
@@ -34,7 +35,7 @@ def input_data_to_c_array(data, mapping) -> str:
     return ', '.join(hex(x) for x in bytes)
 
 
-def write_to_file(icon_name, input_file, mapping):
+def write_to_file(icon_name, input_file, mapping) -> None:
     im = PIL.Image.open(input_file)
     width, height = im.size
     img_data = im.tobytes()
@@ -55,28 +56,30 @@ def write_to_file(icon_name, input_file, mapping):
         return result
 
 
-def build_mapping(transparent_byte):
+def build_mapping(transparent_byte) -> Dict[int: int]:
     if transparent_byte == 0x00:
         return {0: 0, 0b01: 0b01, 0b10: 0b10, 0b11: 0b11}
     elif transparent_byte == 0x03:
         return {0: 0x03, 0b01: 0b10, 0b10: 0b01, 0b11: 0b00}
 
 
-def main(argv):
-    if len(argv) != 4:
-        print("Wrong argument count. Usage: python3 png2c.py <OUTPUT_VARIABLE_NAME> <INPUT.PNG> <TRANSPARENT_BYTE>")
-        print(
-            "<TRANSPARENT_BYTE>: If white should be transparent, use 0x03. If black, use 0x00 (currently has to be hex)")
-        return -1
-    output_name = argv[1]
-    input_file = argv[2]
-    transparent_byte = int(argv[3], base=16)
-    mapping = build_mapping(transparent_byte)
-    if not input_file.endswith(".png"):
+def main():
+    parser = argparse.ArgumentParser(description="Convert an image into a .h file")
+    parser.add_argument('output_name', type=str,
+                        help="The variable name to be used for the Icon.")
+    parser.add_argument("input_file", type=str,
+                        help="The name of the image file")
+    # partial(int, base=0) allows for any base to be entered (hex, binary, decimal etc)
+    parser.add_argument("transparent_byte", type=functools.partial(int, base=0),
+                        help="The encoding of the color that is supposed to be "
+                             "turned transparent (encoded as 0 in the .h file). black=0x00, white=0x03")
+    args = parser.parse_args()
+    mapping = build_mapping(args.transparent_byte)
+    if not args.input_file.endswith(".png"):
         print("Error: Second argument has to be a .png file")
         return -1
-    write_to_file(output_name, input_file, mapping)
+    write_to_file(args.output_name, args.input_file, mapping)
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
