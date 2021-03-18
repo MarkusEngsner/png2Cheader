@@ -56,7 +56,7 @@ def write_to_file(icon_name, input_file, mapping) -> None:
         return result
 
 
-def build_mapping(transparent_byte) -> Dict[int: int]:
+def build_mapping(transparent_byte) -> Dict[int, int]:
     if transparent_byte == 0x00:
         return {0: 0, 0b01: 0b01, 0b10: 0b10, 0b11: 0b11}
     elif transparent_byte == 0x03:
