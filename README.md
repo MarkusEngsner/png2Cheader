@@ -4,7 +4,7 @@
 
 #### PNG
 
-`python3 main.py House2BitIcon example.png -t white`
+`python3 main.py House2BitIcon example.png`
 
 #### SVG
 
