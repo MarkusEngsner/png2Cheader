@@ -2,6 +2,7 @@ import PIL.Image
 import sys
 from typing import List
 from itertools import zip_longest
+from string import Template
 
 
 def grouper(iterable, n, fillvalue=None):
@@ -33,13 +34,6 @@ def input_data_to_c_array(data, mapping) -> str:
     return ', '.join(hex(x) for x in bytes)
 
 
-def fill_placeholders(text, replacements):
-    result = text
-    for placeholder, value in replacements.items():
-        result = result.replace(placeholder, f"{value}")
-    return result
-
-
 def write_to_file(icon_name, input_file, mapping):
     im = PIL.Image.open(input_file)
     width, height = im.size
@@ -48,13 +42,14 @@ def write_to_file(icon_name, input_file, mapping):
     with open('icon_template.h', 'r') as template:
         header_text = f"{icon_name.upper()}_H"
         replacements = {
-            "%ICON_TEMPLATE_H%": header_text,
-            "%IMAGE_DATA%": arr_data,
-            "%WIDTH%": width,
-            "%HEIGHT%": height,
-            "%ICON_NAME%": icon_name,
+            "ICON_TEMPLATE_H": header_text,
+            "IMAGE_DATA": arr_data,
+            "WIDTH": width,
+            "HEIGHT": height,
+            "ICON_NAME": icon_name,
         }
-        result = fill_placeholders(template.read(), replacements)
+        src = Template(template.read())
+        result = src.substitute(replacements)
         with open(icon_name + ".h", 'w') as out:
             out.write(result)
         return result
