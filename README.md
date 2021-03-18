@@ -8,6 +8,6 @@
 
 #### SVG
 
-`python3 main.py DownArrow down_icon.svg`
+`python3 main.py DownArrow down_icon.svg -iw 48 -ih 48`
 
 Currently works for indexed pngs and (hopefully) all svg:s.
