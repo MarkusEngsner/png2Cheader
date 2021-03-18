@@ -11,6 +11,7 @@ def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return zip_longest(*args, fillvalue=fillvalue)
 
+
 def merge_2bits_lsb_first(bytes, mapping):
     result = 0
     # mapping = {0 : 0, 0b01: 0b10, 0b10: 0b01, 0b11: 0b11}
@@ -26,9 +27,17 @@ def input_data_to_byte_list(data, mapping) -> List[int]:
         result.append(y)
     return result
 
+
 def input_data_to_c_array(data, mapping) -> str:
     bytes = input_data_to_byte_list(data, mapping)
     return ', '.join(hex(x) for x in bytes)
+
+
+def fill_placeholders(text, replacements):
+    result = text
+    for placeholder, value in replacements.items():
+        result = result.replace(placeholder, f"{value}")
+    return result
 
 
 def write_to_file(icon_name, input_file, mapping):
@@ -37,15 +46,19 @@ def write_to_file(icon_name, input_file, mapping):
     img_data = im.tobytes()
     arr_data = input_data_to_c_array(img_data, mapping)
     with open('icon_template.h', 'r') as template:
-        t_str = template.read()
         header_text = f"{icon_name.upper()}_H"
-        result = t_str.replace("%ICON_TEMPLATE_H%", header_text)
-        result = result.replace("%IMAGE_DATA%", arr_data)
-        result = result.replace("%WIDTH%", f"{width}").replace("%HEIGHT%", f"{height}")
-        result = result.replace("%ICON_NAME%", icon_name)
+        replacements = {
+            "%ICON_TEMPLATE_H%": header_text,
+            "%IMAGE_DATA%": arr_data,
+            "%WIDTH%": width,
+            "%HEIGHT%": height,
+            "%ICON_NAME%": icon_name,
+        }
+        result = fill_placeholders(template.read(), replacements)
         with open(icon_name + ".h", 'w') as out:
             out.write(result)
         return result
+
 
 def build_mapping(transparent_byte):
     if transparent_byte == 0x00:
@@ -57,7 +70,8 @@ def build_mapping(transparent_byte):
 def main(argv):
     if len(argv) != 4:
         print("Wrong argument count. Usage: python3 png2c.py <OUTPUT_VARIABLE_NAME> <INPUT.PNG> <TRANSPARENT_BYTE>")
-        print("<TRANSPARENT_BYTE>: If white should be transparent, use 0x03. If black, use 0x00 (currently has to be hex)")
+        print(
+            "<TRANSPARENT_BYTE>: If white should be transparent, use 0x03. If black, use 0x00 (currently has to be hex)")
         return -1
     output_name = argv[1]
     input_file = argv[2]
@@ -69,8 +83,5 @@ def main(argv):
     write_to_file(output_name, input_file, mapping)
 
 
-
 if __name__ == '__main__':
     main(sys.argv)
-
-
