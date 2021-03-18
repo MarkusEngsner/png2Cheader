@@ -52,14 +52,24 @@ def remove_alpha_channel(image: PIL.Image) -> PIL.Image:
     return PIL.Image.alpha_composite(background, image)
 
 
+def cleanup_input_file(image: PIL.Image) -> PIL.Image:
+    # converting to grayscale ('L') only works without alpha channel
+    im_no_alpha = remove_alpha_channel(image) if image.mode == 'RGBA' else image
+    iml = im_no_alpha.convert('L')
+    # redo quantization. This ensures that the palette always turn out the same way:
+    # 0 = white (transparent)
+    # 3 = black (100% opacity)
+    # with 1 and 2 as colors in-between
+    iml = iml.quantize(colors=4)
+    return iml
+
+
 def convert_svg(file_name: str) -> PIL.Image:
     temp_png_name = f"{file_name}_TEMP.png"
     # TODO: add support for choosing size
     svg2png(url=f"{file_name}.svg", write_to=temp_png_name, output_width=24, output_height=24)
     im = PIL.Image.open(temp_png_name)
-    im_no_alpha = remove_alpha_channel(im)
-    iml = im_no_alpha.convert('L')
-    iml = iml.quantize(colors=4)
+    iml = cleanup_input_file(im)
     os.remove(temp_png_name)
     return iml
 
@@ -81,7 +91,7 @@ def main():
         return -1
     else:
         indexed_image = PIL.Image.open(args.input_file)
-        indexed_image = indexed_image.quantize(colors=4)
+        indexed_image = cleanup_input_file(indexed_image)
     write_to_file(args.output_name, indexed_image)
 
 
