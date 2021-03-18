@@ -1,8 +1,9 @@
 import argparse
+import os
 import itertools
-import functools
 import PIL.Image
-from typing import List, Dict
+from cairosvg import svg2png
+from typing import List
 from string import Template
 
 
@@ -35,10 +36,9 @@ def input_data_to_c_array(data, mapping) -> str:
     return ', '.join(hex(x) for x in bytes)
 
 
-def write_to_file(icon_name, input_file, mapping) -> None:
-    im = PIL.Image.open(input_file)
-    width, height = im.size
-    img_data = im.tobytes()
+def write_to_file(icon_name, image, mapping) -> None:
+    width, height = image.size
+    img_data = image.tobytes()
     arr_data = input_data_to_c_array(img_data, mapping)
     with open('icon_template.h', 'r') as template:
         header_text = f"{icon_name.upper()}_H"
@@ -56,11 +56,28 @@ def write_to_file(icon_name, input_file, mapping) -> None:
         return result
 
 
-def build_mapping(transparent_byte) -> Dict[int, int]:
-    if transparent_byte == 0x00:
-        return {0: 0, 0b01: 0b01, 0b10: 0b10, 0b11: 0b11}
-    elif transparent_byte == 0x03:
-        return {0: 0x03, 0b01: 0b10, 0b10: 0b01, 0b11: 0b00}
+def remove_alpha_channel(image: PIL.Image) -> PIL.Image:
+    background = PIL.Image.new('RGBA', image.size, (255, 255, 255))
+    return PIL.Image.alpha_composite(background, image)
+
+
+def convert_svg(file_name: str) -> PIL.Image:
+    temp_png_name = f"{file_name}_TEMP.png"
+    svg2png(url=f"{file_name}.svg", write_to=temp_png_name, output_width=24, output_height=24)
+    im = PIL.Image.open(temp_png_name)
+    indexed_image = im.quantize(colors=4)
+    os.remove(temp_png_name)
+    return indexed_image
+
+
+# How to map the paletted png colors to the .h file.
+mappings = {
+    # PIL.quantize puts alpha as 0, and then the "strongest" color as 1.
+    "cairo_svg": {0: 0, 1: 3, 2: 2, 3: 1},
+    "gimp_black_as_transparent": {0: 0, 0b01: 0b01, 0b10: 0b10, 0b11: 0b11},
+    "gimp_white_as_transparent": {0: 0x03, 0b01: 0b10, 0b10: 0b01, 0b11: 0b00},
+
+}
 
 
 def main():
@@ -68,17 +85,26 @@ def main():
     parser.add_argument('output_name', type=str,
                         help="The variable name to be used for the Icon.")
     parser.add_argument("input_file", type=str,
-                        help="The name of the image file")
-    # partial(int, base=0) allows for any base to be entered (hex, binary, decimal etc)
-    parser.add_argument("transparent_byte", type=functools.partial(int, base=0),
-                        help="The encoding of the color that is supposed to be "
-                             "turned transparent (encoded as 0 in the .h file). black=0x00, white=0x03")
+                        help="The name of the image file: svg and png supported"
+                             "For svg: It is assumed that the drawn area is black")
+    # TODO: make this argument optional for svg:s
+    parser.add_argument("transparent_color", type=str,
+                        help="What color to use as transparency."
+                             "Only used for pngs. Options= black or white")
+
     args = parser.parse_args()
-    mapping = build_mapping(args.transparent_byte)
-    if not args.input_file.endswith(".png"):
-        print("Error: Second argument has to be a .png file")
+    file_name, file_type = os.path.splitext(args.input_file)
+    if file_type == ".svg":
+        indexed_image = convert_svg(file_name)
+        mapping = mappings["cairo_svg"]
+    elif not file_type == ".png":
+        print("Error: Second argument has to be a .png or .svg file")
         return -1
-    write_to_file(args.output_name, args.input_file, mapping)
+    else:
+        indexed_image = PIL.Image.open(args.input_file)
+        mapping = mappings["gimp_black_as_transparent"] if args.transparent_color == "black" else mappings[
+            "gimp_white_as_transparent"]
+    write_to_file(args.output_name, indexed_image, mapping)
 
 
 if __name__ == '__main__':

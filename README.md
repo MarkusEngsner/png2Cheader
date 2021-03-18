@@ -1,4 +1,7 @@
 Example usage:  
-`python3 main.py House2BitIcon example.png 0x03`
+`python3 main.py House2BitIcon example.png white`  
+Or with svg:  
+`python3 main.py DownArrow down_icon.svg white`  
+The last option doesn't matter for svgs.
 
-Currently only works for indexed pngs.
+Currently works for indexed pngs and (hopefully) all svg:s.
