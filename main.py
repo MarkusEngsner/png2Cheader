@@ -1,25 +1,21 @@
 import argparse
 import os
-import PIL.Image, PIL.ImageOps
-import numpy as np
 from io import BytesIO
-from cairosvg import svg2png
 from string import Template
+
+import PIL.Image
+import PIL.ImageOps
+import numpy as np
+from cairosvg import svg2png
 
 
 def numpy_concat(image):
     arr = np.array(image)
+    trans_arr = np.array([0, 2, 4, 6])
     rows = arr.size // 4
     arr = arr.reshape(rows, 4)
-    arr = np.flip(arr, axis=1)
-    flat = arr.reshape(arr.size, 1)
-    shifted = flat << 6
-    bits_og = np.unpackbits(shifted, axis=1, count=2)
-    rows = arr.size // 4  # 4 pixels per uint8_t
-    bits = bits_og.reshape(bits_og.size // 8, 8)
-    bytes = np.packbits(bits)
-    np.set_printoptions(formatter={'int': hex})
-    return bytes.flatten()
+    shifted = (arr << trans_arr)
+    return shifted.sum(axis=1)
 
 
 def np_bytes_to_c_array_str(bytes):
@@ -65,10 +61,9 @@ def cleanup_input_file(image: PIL.Image) -> PIL.Image:
     return iml
 
 
-def convert_svg(file_name: str) -> PIL.Image:
+def convert_svg(file_name: str, width: int, height: int) -> PIL.Image:
     temp_png = BytesIO()
-    # TODO: add support for choosing size
-    svg2png(url=f"{file_name}.svg", write_to=temp_png, output_width=24, output_height=24)
+    svg2png(url=f"{file_name}.svg", write_to=temp_png, output_width=width, output_height=height)
     im = PIL.Image.open(temp_png)
     iml = cleanup_input_file(im)
     return iml
@@ -79,13 +74,19 @@ def main():
     parser.add_argument('output_name', type=str,
                         help="The variable name to be used for the Icon.")
     parser.add_argument("input_file", type=str,
-                        help="The name of the image file: svg and png supported"
-                             "For svg: It is assumed that the drawn area is black")
+                        help="The name of the image file: svg and png supported")
+    parser.add_argument("-iw", "--width", type=int, required=False,
+                        help="(Only for svg): the width of the Icon.")
+    parser.add_argument("-ih", "--height", type=int, required=False,
+                        help="(Only for svg): the height of the Icon.")
 
     args = parser.parse_args()
     file_name, file_type = os.path.splitext(args.input_file)
     if file_type == ".svg":
-        indexed_image = convert_svg(file_name)
+        if not args.width or not args.height:
+            print("Error: svg requires --height and --width")
+            return -1
+        indexed_image = convert_svg(file_name, args.width, args.height)
     elif not file_type == ".png":
         print("Error: Second argument has to be a .png or .svg file")
         return -1
