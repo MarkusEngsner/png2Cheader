@@ -48,14 +48,14 @@ def write_to_file(icon_name: str, image: PIL.Image) -> None:
 
 
 # Removing the alpha channel isn't strictly necessary, but results in the data from the svg not having
-# to be remapped (ie 0 = transparent, 0x3 = "strongest" color
+# to be remapped (ie 0 = transparent, 0x3 = "strongest" color)
 def remove_alpha_channel(image: PIL.Image) -> PIL.Image:
     background = PIL.Image.new('RGBA', image.size, (255, 255, 255))
     return PIL.Image.alpha_composite(background, image)
 
 
 def cleanup_input_file(image: PIL.Image) -> PIL.Image:
-    # converting to grayscale ('L') only works without alpha channel
+    # converting to grayscale ('L') only works without alpha channel: it therefore has to be removed
     im_no_alpha = remove_alpha_channel(image) if image.mode == 'RGBA' else image
     iml = im_no_alpha.convert('L')
     # redo quantization. This ensures that the palette always turn out the same way:
@@ -92,7 +92,7 @@ def main():
             return -1
         indexed_image = convert_svg(file_name, args.width, args.height)
     elif not file_type == ".png":
-        print("Error: Second argument has to be a .png or .svg file")
+        print("Error: Input file has to be .png or .svg")
         return -1
     else:
         input_image = PIL.Image.open(args.input_file)
