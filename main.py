@@ -4,7 +4,6 @@ from io import BytesIO
 from string import Template
 
 import PIL.Image
-import PIL.ImageOps
 import numpy as np
 from cairosvg import svg2png
 
