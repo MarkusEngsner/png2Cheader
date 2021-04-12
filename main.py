@@ -9,7 +9,7 @@ import numpy as np
 from cairosvg import svg2png
 
 
-def numpy_concat(image: PIL.Image) -> PIL.Image:
+def numpy_concat(image: PIL.Image) -> np.ndarray:
     arr = np.array(image)
     trans_arr = np.array([0, 2, 4, 6])  # Defines the bit shifts for the pixel merging.
     rows = arr.size // 4
